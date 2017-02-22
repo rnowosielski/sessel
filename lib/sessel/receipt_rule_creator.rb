@@ -5,12 +5,12 @@ module Sessel
   # Takes care of creating the receipt rule and making sure all the prerequisites are in place
   class ReceiptRuleCreator
 
-    def initialize(region, email_addresses, s3_bucket, rule_name, rule_set_name)
-      @receipt_rule = ReceiptRule.new(region, email_addresses, s3_bucket, rule_name, rule_set_name)
-      @s3 = Aws::S3::Client.new(region: region)
-      @sts = Aws::STS::Client.new(region: region)
-      @ses = Aws::SES::Client.new(region: region)
-      @route53 = Aws::Route53::Client.new(region: region)
+    def initialize(receipt_rule)
+      @receipt_rule = receipt_rule
+      @s3 = Aws::S3::Client.new(region: receipt_rule.region)
+      @sts = Aws::STS::Client.new(region: receipt_rule.region)
+      @ses = Aws::SES::Client.new(region: receipt_rule.region)
+      @route53 = Aws::Route53::Client.new(region: receipt_rule.region)
     end
 
     def receipt_rule
@@ -108,9 +108,9 @@ module Sessel
       domain_identity = identities.find { |s| s == domain }
       if domain_identity then
         resp = @ses.get_identity_verification_attributes({
-                                                           identities: [
-                                                               domain,
-                                                           ]
+                                                             identities: [
+                                                                 domain,
+                                                             ]
                                                          })
         domain_identity = resp.to_h[:verification_attributes][domain]
         unless domain_identity[:verification_status] == 'Success' then
@@ -118,8 +118,8 @@ module Sessel
         end
       else
         resp = @ses.verify_domain_identity({
-                                                 domain: domain,
-                                             })
+                                               domain: domain,
+                                           })
         verification_token = resp.to_h[:verification_token]
         ensure_route53_hosted_zone_entries(hosted_zone, verification_token)
       end
@@ -184,7 +184,7 @@ module Sessel
                             acl: "private",
                             bucket: @receipt_rule.s3_bucket,
                             create_bucket_configuration: {
-                                location_constraint: region
+                                location_constraint: @receipt_rule.region
                             }
                         }) if add_new_bucket
     end

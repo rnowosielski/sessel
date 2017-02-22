@@ -43,7 +43,7 @@ module Sessel
           |q| q.validate = /\w@[a-z0-9_-].[a-z]/ }
     end
 
-    def self.for_s3_bucket(solution_name)
+    def self.for_s3_bucket(solution_name, region)
       chosen_bucket = nil
       @@cli.choose do |s3_bucket_menu|
         solution_bucket_name = solution_name.downcase

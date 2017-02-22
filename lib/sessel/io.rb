@@ -20,9 +20,15 @@ module Sessel
       return config
     end
 
-    def self.append_rule_to_file(receipt_rule)
+    def self.append_receipt_rule_to_file(receipt_rule)
       config = read_config_from_file
       config[:receipt_rules].push(receipt_rule)
+      File.open(SESSEL_YAML, 'w') { |file| file.write(config.to_yaml) }
+    end
+
+    def self.append_configuration_set_to_file(configuration_set)
+      config = read_config_from_file
+      config[:configuration_sets].push(configuration_set)
       File.open(SESSEL_YAML, 'w') { |file| file.write(config.to_yaml) }
     end
 

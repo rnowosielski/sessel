@@ -9,42 +9,34 @@ module Sessel
 
   class Add < Thor
 
-    no_commands {
-      def announce()
-        puts 'Question:'
-        ret = yield
-        puts "Answer: #{ret}\n\n"
-        return ret
-      end
-    }
-
-    option :interactive, :type => :boolean
-    desc "receipt_rule SOLUTION_NAME", "Start setup of SES for your particular SOLUTION_NAME"
+    desc "receipt_rule SOLUTION_NAME", "Start setup of SES receipt rule for your particular SOLUTION_NAME"
     long_desc <<-LONGDESC
-      Adds a new configuration item into the configuration.
+      Adds a new receipt rule to the configuration.
     LONGDESC
     def receipt_rule(solution_name)
-      if (options[:interactive]) then
-        region = announce { Ask.for_region }
-        chosen_rule_set_name = announce { Ask.for_rule_set_name(solution_name) }
-        email_address = announce { Ask.for_email_address }
-        s3_bucket = announce { Ask.for_s3_bucket(solution_name) }
-        rule_creator = Sessel::ReceiptRuleCreator.new(region, [email_address], s3_bucket, solution_name, chosen_rule_set_name)
-        rule_creator.create
+      region = IO.announce { Ask.for_region }
+      chosen_rule_set_name = IO.announce { Ask.for_rule_set_name(solution_name) }
+      email_address = IO.announce { Ask.for_email_address }
+      s3_bucket = IO.announce { Ask.for_s3_bucket(solution_name, region) }
+      rule_creator = Sessel::ReceiptRuleCreator.new(
+          ReceiptRule.new(region, [email_address], s3_bucket, solution_name, chosen_rule_set_name)
+      )
+      rule_creator.create
+      IO.append_receipt_rule_to_file(rule_creator.receipt_rule)
+      puts "That's it!"
+    end
 
-        puts "That's it!"
-        config = {}
-        if File.file?(SESSEL_YAML) then
-          config = YAML.load  File.read(SESSEL_YAML);
-        end
-        unless config[:receipt_rules] then
-          config[:receipt_rules] = []
-        end
-        config[:receipt_rules].push(rule_creator.receipt_rule)
-        File.open(SESSEL_YAML, 'w') { |file| file.write(config.to_yaml) }
-      else
-        puts 'Non interactive not implemented'
-      end
+    desc "configuration_set SOLUTION_NAME", "Start setup of SES configuration set for your particular SOLUTION_NAME"
+    long_desc <<-LONGDESC
+      Adds a new configuration set into the configuration.
+    LONGDESC
+    def configuration_set(solution_name)
+      configuration_set_creator = Sessel::ConfigurationSetCreator.new(
+          ConfigurationSet.new(region, "#{solution_name}ConfigurationSet")
+      )
+      configuration_set_creator.create
+      IO.append_configuration_set_to_file(configuration_set_creator.configuration_set)
+      puts "That's it!"
     end
   end
 
@@ -56,7 +48,13 @@ module Sessel
       Uses the configuration stored in sessle.yaml to provision or uptate the recourses in the AWS account
     LONGDESC
     def apply
-        puts 'Non implemented'
+        config = IO.read_config_from_file
+        config[:receipt_rules].each do |receipt_rule|
+          puts "Applying #{receipt_rule.rule_set_name} / #{receipt_rule.rule_name}"
+          rule_creator = Sessel::ReceiptRuleCreator.new(receipt_rule)
+          rule_creator.create
+          puts 'Done'
+        end
     end
 
     desc 'add SUBCOMMAND ...ARGS', 'Add configuration items to the sessle.yaml.'
