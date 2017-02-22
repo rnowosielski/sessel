@@ -17,6 +17,9 @@ module Sessel
       unless config[:receipt_rules] then
         config[:receipt_rules] = []
       end
+      unless config[:configuration_sets] then
+        config[:configuration_sets] = []
+      end
       return config
     end
 

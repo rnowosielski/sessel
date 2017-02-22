@@ -31,6 +31,7 @@ module Sessel
       Adds a new configuration set into the configuration.
     LONGDESC
     def configuration_set(solution_name)
+      region = IO.announce { Ask.for_region }
       configuration_set_creator = Sessel::ConfigurationSetCreator.new(
           ConfigurationSet.new(region, "#{solution_name}ConfigurationSet")
       )
@@ -50,11 +51,16 @@ module Sessel
     def apply
         config = IO.read_config_from_file
         config[:receipt_rules].each do |receipt_rule|
-          puts "Applying #{receipt_rule.rule_set_name} / #{receipt_rule.rule_name}"
+          puts "Applying receipt rule: #{receipt_rule.rule_set_name} / #{receipt_rule.rule_name}"
           rule_creator = Sessel::ReceiptRuleCreator.new(receipt_rule)
           rule_creator.create
-          puts 'Done'
         end
+        config[:configuration_sets].each do |configuration_set|
+          puts "Applying configuration set: #{configuration_set.configuration_set_name}"
+          configuration_set_creator = Sessel::ConfigurationSetCreator.new(configuration_set)
+          configuration_set_creator.create
+        end
+        puts 'Done'
     end
 
     desc 'add SUBCOMMAND ...ARGS', 'Add configuration items to the sessle.yaml.'

@@ -13,7 +13,7 @@ module Sessel
 
     def region
       return @region
-    end[]
+    end
 
   end
 

@@ -17,8 +17,6 @@ module Sessel
     # Creates the configuration set in SES accoring to the paramteres passed when the object was initialised
     def create()
 
-      ensure_prerequsites
-
       rule = {
           configuration_set: {
               name: @configuration_set.configuration_set_name,
@@ -26,7 +24,7 @@ module Sessel
       }
       begin
         @ses.create_configuration_set(rule)
-      rescue Aws::SES::Errors::AlreadyExists
+      rescue Aws::SES::Errors::ConfigurationSetAlreadyExists
         puts "#{@configuration_set.configuration_set_name} already exists. Skipping."
       end
 
@@ -49,7 +47,7 @@ module Sessel
       }
       begin
         @ses.create_configuration_set_event_destination(event_destinaton)
-      rescue Aws::SES::Errors::AlreadyExists
+      rescue Aws::SES::Errors::EventDestinationAlreadyExists
         @ses.update_configuration_set_event_destination(event_destinaton)
       end
 
