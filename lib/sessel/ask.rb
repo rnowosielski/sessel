@@ -1,3 +1,6 @@
+require 'highline'
+require 'uri'
+
 module Sessel
 
   class Ask
@@ -36,7 +39,8 @@ module Sessel
     end
 
     def self.for_email_address()
-      return @@cli.ask 'What is the email address you would like to receive emails at?'
+      return @@cli.ask('What is the email address you would like to receive emails at?') {
+          |q| q.validate = /\w@[a-z0-9_-].[a-z]/ }
     end
 
     def self.for_s3_bucket(solution_name)

@@ -1,3 +1,5 @@
+require 'uri'
+
 module Sessel
 
   # Takes care of creating the receipt rule and making sure all the prerequisites are in place
@@ -5,9 +7,14 @@ module Sessel
 
     def initialize(region, email_addresses, s3_bucket, rule_name, rule_set_name)
       @receipt_rule = ReceiptRule.new(region, email_addresses, s3_bucket, rule_name, rule_set_name)
-      @s3 = Aws::S3::Client.new(region: @region)
-      @sts = Aws::STS::Client.new(region: @region)
-      @ses = Aws::SES::Client.new(region: @region)
+      @s3 = Aws::S3::Client.new(region: region)
+      @sts = Aws::STS::Client.new(region: region)
+      @ses = Aws::SES::Client.new(region: region)
+      @route53 = Aws::Route53::Client.new(region: region)
+    end
+
+    def receipt_rule
+      return @receipt_rule
     end
 
     # Creates the receipt rule in SES accorind to the paramteres passed when the object was initialised
@@ -72,11 +79,88 @@ module Sessel
               }
           ]
       }
-      puts policy.to_json
+
       @s3.put_bucket_policy({
                                 bucket: @receipt_rule.s3_bucket,
                                 policy: policy.to_json
                             })
+    end
+
+    def ensure_address_domains()
+      @receipt_rule.email_addresses.each { |address|
+        ensure_address_domain address
+      }
+    end
+
+    def ensure_address_domain(address)
+      domain = address.split('@').last
+
+      resp = @route53.list_hosted_zones_by_name({})
+      hosted_zones = resp.to_h[:hosted_zones]
+      hosted_zone = hosted_zones.find { |s| s[:name] == "#{domain}." }
+      unless hosted_zone then
+        raise Exception.new("Route53 doesn't contain domain entry for the #{domain}. If you are parking your domain outside AWS, you will need to set the DNS entries yourself")
+      end
+      resp = @ses.list_identities({
+                                      identity_type: 'Domain'
+                                  })
+      identities = resp.to_h[:identities]
+      domain_identity = identities.find { |s| s == domain }
+      if domain_identity then
+        resp = @ses.get_identity_verification_attributes({
+                                                           identities: [
+                                                               domain,
+                                                           ]
+                                                         })
+        domain_identity = resp.to_h[:verification_attributes][domain]
+        unless domain_identity[:verification_status] == 'Success' then
+          ensure_route53_hosted_zone_entries(hosted_zone, domain_identity[:verification_token])
+        end
+      else
+        resp = @ses.verify_domain_identity({
+                                                 domain: domain,
+                                             })
+        verification_token = resp.to_h[:verification_token]
+        ensure_route53_hosted_zone_entries(hosted_zone, verification_token)
+      end
+    end
+
+    def ensure_route53_hosted_zone_entries(hosted_zone, verification_token)
+      request = {
+          hosted_zone_id: hosted_zone[:id],
+          change_batch: {
+              comment: 'Entries required for SES setup',
+              changes: [
+                  {
+                      action: 'UPSERT',
+                      resource_record_set: {
+                          name: hosted_zone[:name],
+                          type: 'TXT',
+                          ttl: 300,
+                          resource_records: [
+                              {
+                                  value: "\"#{verification_token}\""
+                              },
+                          ]
+                      },
+                  },
+                  {
+                      action: "UPSERT",
+                      resource_record_set: {
+                          name: hosted_zone[:name],
+                          type: 'MX',
+                          ttl: 300,
+                          resource_records: [
+                              {
+                                  value: '10 inbound-smtp.eu-west-1.amazonaws.com'
+                              }
+                          ]
+                      }
+                  }
+              ]
+          }
+      }
+      resp = @route53.change_resource_record_sets(request)
     end
 
     # Ensure the chosen rule set exists
@@ -111,6 +195,7 @@ module Sessel
       ensure_rule_set
       ensure_s3_bucket
       ensure_s3_bucket_policy
+      ensure_address_domains
 
     end
 
