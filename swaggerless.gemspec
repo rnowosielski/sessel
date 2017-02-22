@@ -26,5 +26,6 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency "aws-sdk", "~> 2.6"
   spec.add_runtime_dependency "thor"
+  spec.add_runtime_dependency "highline", "2.0.0.pre.develop.6"
 
 end
