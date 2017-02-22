@@ -1,11 +1,11 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'swaggerless/version'
+require 'sessel/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "sessel"
-  spec.version       = Swaggerless::VERSION
+  spec.version       = Sessel::VERSION
   spec.authors       = ["Rafal Nowosielski"]
   spec.email         = ["rafal@nowosielski.email"]
 
@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
     f.match(%r{^(test|spec|features)/})
   end
   spec.bindir        = "bin"
-  spec.executables   = ["seesel"]
+  spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
   spec.add_development_dependency "bundler", "~> 1.13"
@@ -25,5 +25,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "minitest", "~> 5.0"
 
   spec.add_runtime_dependency "aws-sdk", "~> 2.6"
+  spec.add_runtime_dependency "thor"
 
 end

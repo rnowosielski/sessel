@@ -1,4 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'sessel'
-puts Hola.hi(ARGV[0])
+
+puts Sessel::VERSION
+
+Sessel::Main.start(ARGV)
