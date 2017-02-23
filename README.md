@@ -14,5 +14,21 @@ In order to install the gem call
     
 Alternatively if you use bundle you can add an entry to the `Gemfile`
     
+## Usage
 
+The first step is to create the sessel.yaml. Sessel offers commands that interatively ask you for all the required information.
+
+    sessel add receipt_rule <SOLUTION_NAME>
+    
+or 
+    
+    sessel add configuration_set <SOLUTION_NAME>
+    
+       
+Following the instructions in both cases will result in relevant resources being created in your AWS account and `sessel.yaml` being updated.
+In order to apply the settings again one can call 
+
+    sessel apply
+    
+       
     
