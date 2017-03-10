@@ -29,7 +29,7 @@ module Sessel
                   {
                       s3_action: {
                           bucket_name: @receipt_rule.s3_bucket,
-                          object_key_prefix: 'email',
+                          object_key_prefix: @receipt_rule.object_key_prefix,
                       },
                   },
               ],
